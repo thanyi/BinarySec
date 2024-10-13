@@ -10,7 +10,7 @@
 
 [ret2dlresolve - CTF Wiki](https://ctf-wiki.org/pwn/linux/user-mode/stackoverflow/x86/advanced-rop/ret2dlresolve/)
 
-关于ret2dlresolve也是算学了好几天了，其实从原理上就很让绕，主要涉及到的就是函数延迟绑定的过程
+关于ret2dlresolve也是算学了好几天了，其实从原理上就很绕，主要涉及到的就是函数延迟绑定的过程
 
 这篇笔记主要是根据[https://bbs.kanxue.com/thread-266769.htm](https://bbs.kanxue.com/thread-266769.htm)来写的，基本上都是原文内容，建议看原文
 
@@ -92,17 +92,17 @@ typedef struct
 
 第一次使用函数，调用对应的`函数@plt`所在的指令。它跳到了got表相应位置（这个位置此时属于第一次执行函数，它指向的其实是`函数@plt`的下一个指令），也就是
 
-![Untitled](%E3%80%90ret2dlresolve%E3%80%91%E5%AD%A6%E4%B9%A0%E5%92%8C%E4%BD%93%E4%BC%9A%20dd7da26e1a564d8ab96be08417894fa9/Untitled.png)
+![Untitled](Untitled.png)
 
-![Untitled](%E3%80%90ret2dlresolve%E3%80%91%E5%AD%A6%E4%B9%A0%E5%92%8C%E4%BD%93%E4%BC%9A%20dd7da26e1a564d8ab96be08417894fa9/Untitled%201.png)
+![Untitled](Untitled%201.png)
 
-![Untitled](%E3%80%90ret2dlresolve%E3%80%91%E5%AD%A6%E4%B9%A0%E5%92%8C%E4%BD%93%E4%BC%9A%20dd7da26e1a564d8ab96be08417894fa9/Untitled%202.png)
+![Untitled](Untitled%202.png)
 
 这里push的是`_dl_runtime_resolve`的第二个参数：`reloc_offset`。 然后再`jmp`到`PLT[0]`的位置，也就是`plt表`最开始
 
 在`plt[0]`处先是`push got[1]`，`got[1]`就是`link_map`（链接器的标识信息,后文会讲到），然后`jmp`到`got[2]`处，`got[2]`就是`_dl_runtime_resolve`函数的地址
 
-![Untitled](%E3%80%90ret2dlresolve%E3%80%91%E5%AD%A6%E4%B9%A0%E5%92%8C%E4%BD%93%E4%BC%9A%20dd7da26e1a564d8ab96be08417894fa9/Untitled%203.png)
+![Untitled](Untitled%203.png)
 
 ```c
 _dl_runtime_resolve(link_map,reloc_offset)
@@ -117,7 +117,7 @@ _dl_runtime_resolve(link_map,reloc_offset)
 
 这里有一张别的师傅画的图很形象
 
-![Untitled](%E3%80%90ret2dlresolve%E3%80%91%E5%AD%A6%E4%B9%A0%E5%92%8C%E4%BD%93%E4%BC%9A%20dd7da26e1a564d8ab96be08417894fa9/Untitled%204.png)
+![Untitled](Untitled%204.png)
 
 # 32 位
 
@@ -288,3 +288,6 @@ fake_arg = fake_write_addr - rel_plt
 ## partial RELRO
 
 64位的partial RELRO与之前的所有操作都是有区别的
+主要看这个博客，关注最后的x64部分
+
+[ret2dlresolve超详细教程(x86&x64)](https://blog.csdn.net/qq_51868336/article/details/114644569)

