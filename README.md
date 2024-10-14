@@ -21,10 +21,14 @@ This is a ctf:pwn note for myself. To be a better pwner, remember to be hungry a
 
 ## 实战 WP
 关于之前写的一些CTF的Write up会在这里更新,有的WP只有部分题目
+
+同时还有些wp是网上收集
 - [XYCTF 2024](https://www.ethanyi9.site/article/xyctf)
 - [Hgame 2024](https://www.ethanyi9.site/article/hgame)
 - [VNCTF 2024](https://www.ethanyi9.site/article/vnctf)
 - [beginCTF 2024](https://www.ethanyi9.site/article/begin-ctf)
+- [ctfshow 西瓜杯](https://docs.qq.com/doc/DRmVUb1lOdmFMYmx1)
+- [ctfshow 元旦水友赛](https://docs.qq.com/doc/DRlBMcWdhZW9ZUnFB?groupUin=GfkIQFz8BC%252BHSzY3yRJfag%253D%253D&ADUIN=1316594115&ADSESSION=1728871674&ADTAG=CLIENT.QQ.6067_.0&ADPUBNO=27427&jumpuin=1316594115)
 - [极客大挑战 2023](https://www.ethanyi9.site/article/geekchallenge)
 
 ## 出题指南
