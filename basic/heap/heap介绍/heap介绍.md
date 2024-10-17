@@ -93,8 +93,6 @@ libc2.32中引入了Safe-linking机制，应用于fastbin和tcache中
 
 # Fastbin Attack
 
-[【堆知识总结 _ bins结构】fastbins attack：babyheap_0ctf_2017](%E3%80%90%E5%A0%86%E7%9F%A5%E8%AF%86%E6%80%BB%E7%BB%93%20_%20bins%E7%BB%93%E6%9E%84%E3%80%91fastbins%20attack%EF%BC%9Ababyheap_0ctf_2017%203ffa01987ceb456b84c4f4feb7b8f3b4.md)
-
 fastbin的话构造的大小就不能大于`0x80`
 
 fastbin attack分为比较的多的几种模式，像是包括Fastbin Dup（double free）等
